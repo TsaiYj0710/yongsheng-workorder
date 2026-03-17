@@ -200,19 +200,59 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang TC','Microsoft Jheng
 
 <!-- 編輯記錄 modal -->
 <div class="modal-overlay" id="edit-modal" style="align-items:flex-start;padding:16px;overflow-y:auto">
-  <div class="modal-box" style="max-width:420px;width:100%;margin:auto">
+  <div class="modal-box" style="max-width:460px;width:100%;margin:auto">
     <div class="modal-title">✏️ 編輯工單</div>
+    <div id="edit-lock-bar" style="display:none;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:10px 12px;font-size:13px;color:#856404;margin-bottom:12px">
+      🔒 此工單已修改過，無法再次修改。如有問題請聯絡老闆。
+    </div>
     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
       <div class="fg" style="margin:0"><label>收件人</label><input type="text" id="edit-name" placeholder="收件人姓名"></div>
       <div class="fg" style="margin:0"><label>電話</label><input type="tel" id="edit-phone" placeholder="電話"></div>
       <div class="fg" style="margin:0"><label>地址</label><input type="text" id="edit-addr" placeholder="地址"></div>
       <div class="fg" style="margin:0"><label>出貨單號</label><input type="text" id="edit-shipno" placeholder="出貨單號"></div>
       <div class="fg" style="margin:0"><label>宅配單號</label><input type="text" id="edit-trackno" placeholder="宅配單號"></div>
+      <div id="edit-machines-wrap" style="background:#f0f5ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px">
+        <div style="font-size:12px;font-weight:600;color:#1a5fa8;margin-bottom:8px">❄️ 機型與安裝費</div>
+        <div id="edit-machine-list" style="display:flex;flex-direction:column;gap:8px"></div>
+        <button type="button" onclick="addEditMachine()" style="width:100%;margin-top:8px;background:#fff;border:1px dashed #1a5fa8;border-radius:8px;padding:8px;font-size:12px;color:#1a5fa8;font-weight:500;cursor:pointer;font-family:inherit">＋ 新增機型</button>
+      </div>
+      <div id="edit-return-machines-wrap" style="background:#f9fafb;border:1px solid #e4e7ec;border-radius:10px;padding:12px;display:none">
+        <div style="font-size:12px;font-weight:600;color:#667085;margin-bottom:8px">📦 退機機型</div>
+        <div id="edit-return-machine-list" style="display:flex;flex-direction:column;gap:8px"></div>
+        <button type="button" onclick="addEditReturnMachine()" style="width:100%;margin-top:8px;background:#fff;border:1px dashed #667085;border-radius:8px;padding:8px;font-size:12px;color:#667085;font-weight:500;cursor:pointer;font-family:inherit">＋ 新增退機機型</button>
+      </div>
+      <div class="fg" style="margin:0"><label>KW</label><input type="number" id="edit-kw" placeholder="KW" step="0.01"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="fg" style="margin:0"><label>跨區費用</label><input type="text" id="edit-extra-zone" placeholder="無則留空"></div>
+        <div class="fg" style="margin:0"><label>樓層費用</label><input type="text" id="edit-extra-floor" placeholder="無則留空"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="fg" style="margin:0"><label>代收貨款</label><input type="text" id="edit-cod" placeholder="無則留空"></div>
+        <div class="fg" style="margin:0"><label>只送不裝</label><input type="text" id="edit-delivery-only" placeholder="無則留空"></div>
+      </div>
+      <div class="fg" style="margin:0"><label>空趟拒收</label><input type="text" id="edit-rejected" placeholder="無則留空"></div>
       <div class="fg" style="margin:0"><label>備註</label><textarea id="edit-note" placeholder="備註" style="min-height:60px"></textarea></div>
     </div>
     <div class="modal-btns">
       <button class="modal-btn modal-btn-cancel" onclick="closeEditModal()">取消</button>
-      <button class="modal-btn" id="edit-confirm-btn" style="background:#15803d;color:#fff" onclick="confirmEdit()">儲存修改</button>
+      <button class="modal-btn" id="edit-confirm-btn" style="background:#15803d;color:#fff" onclick="showEditConfirm()">儲存修改</button>
+    </div>
+  </div>
+</div>
+
+<!-- 編輯確認框 -->
+<div class="modal-overlay" id="edit-confirm-modal">
+  <div class="modal-box" style="max-width:340px;text-align:center">
+    <div style="font-size:36px;margin-bottom:12px">⚠️</div>
+    <div class="modal-title" style="justify-content:center">確認修改工單？</div>
+    <div class="modal-msg" style="background:#fff8e1;border:1px solid #ffe082;border-radius:10px;padding:12px;margin:12px 0;font-size:13px;color:#7a5f00;line-height:1.7">
+      ⚠️ <strong>注意：工單修改後無法復原</strong><br>
+      請確認資料已填寫正確<br>
+      <span style="font-size:12px;color:#9a7000">（每筆工單僅限修改一次，請謹慎確認）</span>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-btn modal-btn-cancel" onclick="closeEditConfirm()">再檢查一下</button>
+      <button class="modal-btn" style="background:#15803d;color:#fff" onclick="confirmEdit()">確認修改</button>
     </div>
   </div>
 </div>
@@ -243,7 +283,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang TC','Microsoft Jheng
     <div class="car-badge-lg" id="login-badge" style="display:none"></div>
     <input type="password" class="pw-input" id="login-pw" placeholder="••••" maxlength="20"
       onkeydown="if(event.key==='Enter')doLogin()">
-    <button class="btn-login" onclick="doLogin()">進入系統</button>
+    <button class="btn-login" id="btn-do-login" onclick="doLogin()">進入系統</button>
     <div class="login-err" id="login-err">❌ 通行碼錯誤，請重試或聯絡老闆</div>
     <div class="login-hint">不知道通行碼？請聯絡老闆</div>
   </div>
@@ -525,7 +565,9 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzRcPrGV7o6PaZS2ik8w
 const MAX_MACHINES = 6;
 let photoData=[], localOrders=JSON.parse(localStorage.getItem('ys_local')||'[]');
 let invoiceVal='', machines=[], pendingCar='';
-const lockedCar = localStorage.getItem('ys_locked_car')||'';
+
+// 車隊：每次都即時從 localStorage 讀取，不用固定常數
+function getLockedCar(){ return localStorage.getItem('ys_locked_car')||''; }
 
 // 裝置碼：綁定時自動產生，之後固定不變
 function getDeviceKey(){
@@ -540,7 +582,8 @@ function getDeviceKey(){
 window.onload = function(){
   const p = new URLSearchParams(window.location.search).get('admin');
   if(p === 'true' || p === '1'){ showAdmin(); return; }
-  if(lockedCar){ showLoginScreen(lockedCar); }
+  const car = getLockedCar();
+  if(car){ showLoginScreen(car); }
   else { document.getElementById('setup-screen').style.display='flex'; }
 };
 
@@ -554,20 +597,22 @@ function showLoginScreen(car){
 
 async function doLogin(){
   const input=document.getElementById('login-pw').value.trim();
+  const car=getLockedCar(); // 即時讀取，避免第一次綁定後吃到舊值
   if(!input){ document.getElementById('login-err').style.display='block'; return; }
-  document.querySelector('.btn-login').disabled=true;
-  document.querySelector('.btn-login').textContent='驗證中...';
+  if(!car){ document.getElementById('setup-screen').style.display='flex'; return; }
+  const loginBtn=document.getElementById('btn-do-login');
+  if(loginBtn){ loginBtn.disabled=true; loginBtn.textContent='驗證中...'; }
   try{
     const res=await fetch(SCRIPT_URL,{
       method:'POST',headers:{'Content-Type':'text/plain'},
-      body:JSON.stringify({action:'verifyPin',car:lockedCar,pin:input,deviceKey:getDeviceKey()})
+      body:JSON.stringify({action:'verifyPin',car:car,pin:input,deviceKey:getDeviceKey()})
     });
     const json=await res.json();
     if(json.success){
       document.getElementById('login-screen').style.display='none';
       document.getElementById('login-pw').value='';
       document.getElementById('login-err').style.display='none';
-      initMain(lockedCar);
+      initMain(car);
     } else {
       document.getElementById('login-err').style.display='block';
       document.getElementById('login-pw').value='';
@@ -581,8 +626,7 @@ async function doLogin(){
       document.getElementById('login-err').textContent='❌ 通行碼錯誤，請重試或聯絡老闆';
     },3000);
   }finally{
-    document.querySelector('.btn-login').disabled=false;
-    document.querySelector('.btn-login').textContent='進入系統';
+    if(loginBtn){ loginBtn.disabled=false; loginBtn.textContent='進入系統'; }
   }
 }
 
@@ -870,7 +914,20 @@ function initMain(car){
   document.getElementById('header-badge').textContent=car;
   document.getElementById('car-display').textContent=car;
   document.getElementById('f-date').value=getTodayText();
-  machines=[];addMachine();
+  // 防止重複累加：先清空再建第一筆
+  machines=[];
+  returnMachines=[];
+  document.getElementById('machine-list').innerHTML='';
+  document.getElementById('return-machine-list').innerHTML='';
+  orderType='install';
+  ['install','second','return'].forEach(function(t){
+    const btn=document.getElementById('type-'+t);
+    if(btn) btn.className='type-btn'+(t==='install'?' type-active':'');
+  });
+  document.getElementById('card-install-machines').style.display='block';
+  document.getElementById('card-return-machines').style.display='none';
+  document.getElementById('card-install-other').style.display='block';
+  addMachine();
 }
 
 function addMachine(brand,model,fee){
@@ -968,7 +1025,7 @@ function previewPhotos(inp){
 }
 
 async function submitOrder(){
-  const car=localStorage.getItem('ys_locked_car');
+  const car=getLockedCar();
   const d=document.getElementById('f-date').value;
   const addr=document.getElementById('f-addr').value.trim();
 
@@ -1009,7 +1066,9 @@ async function submitOrder(){
       const res=await fetch(SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)});
       const json=await res.json();
       if(json.success){
-        localOrders.unshift({...payload,photos:[],photoCount:photoData.length});
+        localOrders.unshift({...payload,photos:[],photoCount:photoData.length,
+          photo:photoData.length>0?'有（'+photoData.length+'張）':'無',
+          editedOnce:false});
         localStorage.setItem('ys_local',JSON.stringify(localOrders.slice(0,200)));
         showToast('success','✅ 工單送出成功！',typeName+'工單已存入 Google Sheets，照片已上傳至 Google Drive。',function(){resetForm();});
       }else{ showToast('error','❌ 傳送失敗',json.error||'未知錯誤，請稍後再試。'); }
@@ -1051,7 +1110,9 @@ async function submitOrder(){
       const res=await fetch(SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)});
       const json=await res.json();
       if(json.success){
-        localOrders.unshift({...payload,photos:[],photoCount:photoData.length});
+        localOrders.unshift({...payload,photos:[],photoCount:photoData.length,
+          photo:photoData.length>0?'有（'+photoData.length+'張）':'無',
+          editedOnce:false});
         localStorage.setItem('ys_local',JSON.stringify(localOrders.slice(0,200)));
         showToast('success','✅ 工單送出成功！','退機工單已存入 Google Sheets。',function(){resetForm();});
       }else{ showToast('error','❌ 傳送失敗',json.error||'未知錯誤，請稍後再試。'); }
@@ -1078,15 +1139,18 @@ function resetForm(){
   ['inv-yes','inv-no','inv-company'].forEach(id=>document.getElementById(id).classList.remove('sel-inv'));
   machines=[];
   returnMachines=[];
-  if(orderType==='return'){
-    document.getElementById('machine-list').innerHTML='';
-    document.getElementById('return-machine-list').innerHTML='';
-    addReturnMachine();
-  } else {
-    document.getElementById('return-machine-list').innerHTML='';
-    document.getElementById('machine-list').innerHTML='';
-    addMachine();
-  }
+  document.getElementById('machine-list').innerHTML='';
+  document.getElementById('return-machine-list').innerHTML='';
+  // 重設到安裝模式，確保按鈕樣式與 orderType 一致
+  orderType='install';
+  ['install','second','return'].forEach(function(t){
+    const btn=document.getElementById('type-'+t);
+    if(btn) btn.className='type-btn'+(t==='install'?' type-active':'');
+  });
+  document.getElementById('card-install-machines').style.display='block';
+  document.getElementById('card-return-machines').style.display='none';
+  document.getElementById('card-install-other').style.display='block';
+  addMachine();
   window.scrollTo(0,0);
   setTimeout(function(){ document.getElementById('msg').className='msg'; }, 3000);
 }
@@ -1101,7 +1165,7 @@ function showTab(t){
 }
 
 async function renderRecords(){
-  const car=localStorage.getItem('ys_locked_car')||'';
+  const car=getLockedCar();
   const today=normalizeDateText(getTodayText());
   const el=document.getElementById('rec-list');
   el.innerHTML='<div class="empty">⏳ 載入中...</div>';
@@ -1132,11 +1196,12 @@ async function renderRecords(){
       return;
     }
 
-    el.innerHTML=orders.slice(0,50).map(function(o){
+    el.innerHTML=orders.slice(0,100).map(function(o){
       const machines=Array.isArray(o.machines)?o.machines:[];
-      // 去重複機型
+      // 去重複機型，防止空陣列報錯
       const seen={};
       const uniqueMachines=machines.filter(function(m){
+        if(!m||(!m.brand&&!m.model)) return false;
         const key=(m.brand||'')+'|'+(m.model||'');
         if(seen[key]) return false;
         seen[key]=true; return true;
@@ -1163,6 +1228,7 @@ async function renderRecords(){
       return '<div class="rec-card" id="rec-'+safeId+'">'+
         '<div class="rec-header"><span class="badge b-'+esc(o.car||'')+'">'+esc(o.car||'')+'</span>'+
         '<span style="font-size:11px;color:#667085;margin-left:6px">'+safeOrderType+'</span>'+
+        (o.editedOnce?'<span style="font-size:10px;background:#fff3cd;color:#856404;border:1px solid #ffc107;border-radius:10px;padding:2px 7px;margin-left:4px">🔒已改</span>':'')+
         '<span class="rec-fee">$'+(Number(o.totalFee)||0).toLocaleString()+'</span></div>'+
         '<div class="rec-addr">'+(safeName2?safeName2+' ｜ ':'')+safeAddr+'</div>'+
         '<div class="rec-meta"><span>📅 '+esc(displayDate)+'</span>'+
@@ -1176,7 +1242,9 @@ async function renderRecords(){
         '</div>'+
         '<div class="rec-actions">'+
         '<button class="rec-btn rec-btn-photo" onclick="openPhotoModal(\''+safeId+'\')">📷 補照片</button>'+
-        '<button class="rec-btn rec-btn-edit" onclick="openEditModal(\''+safeId+'\')">✏️ 編輯</button>'+
+        (o.editedOnce
+          ? '<button class="rec-btn" style="background:#f2f4f7;color:#98a2b3;cursor:not-allowed" disabled>🔒 已鎖定</button>'
+          : '<button class="rec-btn rec-btn-edit" onclick="openEditModal(\''+safeId+'\')">✏️ 編輯</button>')+
         '<button class="rec-btn rec-btn-del" onclick="openDelModal(\''+safeId+'\',\''+safeName2+'\')">🗑️ 刪除</button>'+
         '</div>'+
         '</div>';
@@ -1194,19 +1262,34 @@ async function renderRecords(){
       el.innerHTML='<div class="empty">尚無工單記錄<br><small>送出工單後會顯示在這裡</small></div>';
       return;
     }
-    el.innerHTML='<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:10px;padding:10px 12px;font-size:12px;color:#7a5f00;margin-bottom:10px">⚠️ 雲端讀取失敗，顯示本機記錄</div>'+
-    myOrders.slice(0,50).map(function(o){
-      const mText=(o.machines||[]).map(function(m){
+    el.innerHTML='<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:10px;padding:10px 12px;font-size:12px;color:#7a5f00;margin-bottom:10px">⚠️ 雲端讀取失敗，顯示本機記錄（唯讀）</div>'+
+    myOrders.slice(0,100).map(function(o){
+      const mText=(o.machines||[]).filter(function(m){return m&&(m.brand||m.model);}).map(function(m){
         const title=(m.brand?m.brand+' ':'')+(m.model||'');
         return (o.orderType!=='退機'&&(m.fee||m.fee===0))?title+'（$'+Number(m.fee).toLocaleString()+'）':title;
       }).join(' · ');
       const safeName2=esc(o.name||'');
       const safeAddr=esc(o.addr||'');
+      const rawDate=o.date||'';
+      const displayDate=rawDate.indexOf('GMT')>-1?formatYMD(rawDate):normalizeDateText(rawDate);
       return '<div class="rec-card">'+
         '<div class="rec-header"><span class="badge b-'+esc(o.car||'')+'">'+esc(o.car||'')+'</span>'+
-        '<span class="rec-fee">$'+(o.totalFee||0).toLocaleString()+'</span></div>'+
+        '<span style="font-size:11px;color:#667085;margin-left:6px">'+esc(o.orderType||'安裝')+'</span>'+
+        (o.editedOnce?'<span style="font-size:10px;background:#fff3cd;color:#856404;border:1px solid #ffc107;border-radius:10px;padding:2px 7px;margin-left:4px">🔒已改</span>':'')+
+        '<span class="rec-fee">$'+(Number(o.totalFee)||0).toLocaleString()+'</span></div>'+
         '<div class="rec-addr">'+(safeName2?safeName2+' ｜ ':'')+safeAddr+'</div>'+
-        '<div class="rec-meta"><span>📅 '+esc(o.date||'')+'</span></div>'+
+        '<div class="rec-meta">'+
+        '<span>📅 '+esc(displayDate)+'</span>'+
+        (o.phone?'<span>📞 '+esc(o.phone)+'</span>':'')+
+        (mText?'<span>'+esc(mText)+'</span>':'')+
+        (o.shipno?'<span>📦 '+esc(o.shipno)+'</span>':'')+
+        (o.photo?'<span>📷 '+esc(o.photo)+'</span>':'')+
+        '</div>'+
+        '<div class="rec-actions" style="opacity:0.5;pointer-events:none">'+
+        '<button class="rec-btn rec-btn-photo" disabled>📷 補照片</button>'+
+        '<button class="rec-btn" style="background:#f2f4f7;color:#98a2b3" disabled>'+(o.editedOnce?'🔒 已鎖定':'✏️ 編輯')+'</button>'+
+        '<button class="rec-btn rec-btn-del" disabled>🗑️ 刪除</button>'+
+        '</div>'+
         '</div>';
     }).join('');
   }
@@ -1231,10 +1314,12 @@ async function confirmDelete(){
   try{
     const res=await fetch(SCRIPT_URL,{
       method:'POST',headers:{'Content-Type':'text/plain'},
-      body:JSON.stringify({action:'deleteRecord',id:id,car:localStorage.getItem('ys_locked_car')||'',deviceKey:getDeviceKey()})
+      body:JSON.stringify({action:'deleteRecord',id:id,car:getLockedCar(),deviceKey:getDeviceKey()})
     });
     const json=await res.json();
     if(json.success){
+      // 同步 currentOrders（畫面）與 localOrders（本機快取）
+      currentOrders=currentOrders.filter(function(o){ return String(o.id)!==String(id); });
       localOrders=localOrders.filter(function(o){ return String(o.id)!==String(id); });
       localStorage.setItem('ys_local',JSON.stringify(localOrders.slice(0,200)));
       showToast('success','✅ 刪除成功','工單已從 Google Sheets 刪除。',function(){renderRecords();});
@@ -1258,6 +1343,13 @@ function closePhotoModal(){
   pendingPhotoId='';
   addPhotoData=[];
   document.getElementById('photo-modal').classList.remove('show');
+  // 清空殘留預覽
+  const inp=document.getElementById('add-photos-input');
+  const prev=document.getElementById('add-photo-preview');
+  const cnt=document.getElementById('add-photo-count');
+  if(inp) inp.value='';
+  if(prev) prev.innerHTML='';
+  if(cnt) cnt.textContent='';
 }
 function previewAddPhotos(input){
   const files=Array.from(input.files);
@@ -1288,15 +1380,24 @@ async function confirmAddPhotos(){
   try{
     const res=await fetch(SCRIPT_URL,{
       method:'POST',headers:{'Content-Type':'text/plain'},
-      body:JSON.stringify({action:'addPhotos',id:id,car:localStorage.getItem('ys_locked_car')||'',deviceKey:getDeviceKey(),photos:photosToUpload})
+      body:JSON.stringify({action:'addPhotos',id:id,car:getLockedCar(),deviceKey:getDeviceKey(),photos:photosToUpload})
     });
     const json=await res.json();
     if(json.success){
+      // 優先用後端回傳的 newPhoto，沒有才自己算
+      const newPhotoText = json.newPhoto || (function(){
+        const o=currentOrders.find(function(x){ return String(x.id)===String(id); });
+        const oldP=o?String(o.photo||''):'';
+        return (oldP&&oldP!=='無') ? oldP+'＋補'+addCount+'張' : '有（補'+addCount+'張）';
+      })();
+      // 同步 currentOrders
+      currentOrders=currentOrders.map(function(o){
+        if(String(o.id)===String(id)){ return Object.assign({},o,{photo:newPhotoText}); }
+        return o;
+      });
+      // 同步 localOrders
       localOrders=localOrders.map(function(o){
-        if(String(o.id)===String(id)){
-          const oldPhoto=String(o.photo||'');
-          o.photo=oldPhoto&&oldPhoto!=='無'?oldPhoto+'＋補'+addCount+'張':'有（補'+addCount+'張）';
-        }
+        if(String(o.id)===String(id)){ return Object.assign({},o,{photo:newPhotoText}); }
         return o;
       });
       localStorage.setItem('ys_local',JSON.stringify(localOrders.slice(0,200)));
@@ -1314,25 +1415,142 @@ async function confirmAddPhotos(){
 
 // ── 編輯記錄 ──
 let pendingEditId='', currentOrders=[];
+let editMachines=[], editIsReturn=false;
+
 function openEditModal(id){
-  // 從目前載入的記錄找到這筆
   const o=currentOrders.find(function(o){ return String(o.id)===String(id); });
   if(!o){ showToast('error','❌ 找不到此工單','請重新整理後再試');return; }
+  // 編輯鎖：已改過直接擋，不進 modal
+  if(o.editedOnce){
+    showToast('error','🔒 此工單已鎖定','每筆工單只能修改一次，如需協助請聯絡老闆。');
+    return;
+  }
   pendingEditId=id;
+  editIsReturn = (o.orderType==='退機');
+
+  // 基本欄位
   document.getElementById('edit-name').value=o.name||'';
   document.getElementById('edit-phone').value=o.phone||'';
   document.getElementById('edit-addr').value=o.addr||'';
   document.getElementById('edit-shipno').value=o.shipno||'';
   document.getElementById('edit-trackno').value=o.trackno||'';
   document.getElementById('edit-note').value=o.note||'';
+  document.getElementById('edit-kw').value=o.kw||'';
+  document.getElementById('edit-extra-zone').value=o.extra_zone||'';
+  document.getElementById('edit-extra-floor').value=o.extra_floor||'';
+  document.getElementById('edit-cod').value=o.cod||'';
+  document.getElementById('edit-delivery-only').value=o.delivery_only||'';
+  document.getElementById('edit-rejected').value=o.rejected||'';
+
+  // 機型區塊切換
+  document.getElementById('edit-machines-wrap').style.display = editIsReturn ? 'none' : 'block';
+  document.getElementById('edit-return-machines-wrap').style.display = editIsReturn ? 'block' : 'none';
+
+  // 機型資料初始化
+  editMachines = (Array.isArray(o.machines)&&o.machines.length)
+    ? o.machines.map(function(m,i){ return {id:'em'+i, brand:m.brand||'', model:m.model||'', fee:m.fee||0}; })
+    : [{id:'em0',brand:'',model:'',fee:0}];
+  renderEditMachines();
+
+  // 編輯鎖：已改過的工單顯示警告並停用按鈕
+  const lockBar = document.getElementById('edit-lock-bar');
+  const confirmBtn = document.getElementById('edit-confirm-btn');
+  if(o.editedOnce){
+    if(lockBar) lockBar.style.display='block';
+    if(confirmBtn){ confirmBtn.disabled=true; confirmBtn.textContent='已鎖定（無法再改）'; confirmBtn.style.background='#98a2b3'; }
+  } else {
+    if(lockBar) lockBar.style.display='none';
+    if(confirmBtn){ confirmBtn.disabled=false; confirmBtn.textContent='儲存修改'; confirmBtn.style.background='#15803d'; }
+  }
+
   document.getElementById('edit-modal').classList.add('show');
 }
+
+function renderEditMachines(){
+  const listId = editIsReturn ? 'edit-return-machine-list' : 'edit-machine-list';
+  document.getElementById(listId).innerHTML = editMachines.map(function(m,i){
+    const rmBtn = editMachines.length>1 ? '<button type="button" onclick="removeEditMachine(\''+m.id+'\')" style="background:none;border:none;color:#b42318;cursor:pointer;font-size:14px;padding:2px 4px">✕</button>' : '';
+    if(editIsReturn){
+      return '<div style="background:#fff;border:1px solid #e4e7ec;border-radius:8px;padding:10px" id="emi-'+m.id+'">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:12px;font-weight:600;color:#667085">機型 '+(i+1)+'</span>'+rmBtn+'</div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'+
+        '<div class="fg" style="margin:0"><label>品牌</label><input type="text" id="emb-'+m.id+'" value="'+esc(m.brand)+'" placeholder="Panasonic"></div>'+
+        '<div class="fg" style="margin:0"><label>型號</label><input type="text" id="emm-'+m.id+'" value="'+esc(m.model)+'" placeholder="型號"></div>'+
+        '</div></div>';
+    } else {
+      return '<div style="background:#fff;border:1px solid #e4e7ec;border-radius:8px;padding:10px" id="emi-'+m.id+'">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-size:12px;font-weight:600;color:#1a5fa8">機型 '+(i+1)+'</span>'+rmBtn+'</div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">'+
+        '<div class="fg" style="margin:0"><label>品牌</label><input type="text" id="emb-'+m.id+'" value="'+esc(m.brand)+'" placeholder="Panasonic"></div>'+
+        '<div class="fg" style="margin:0"><label>安裝費</label><input type="number" id="emf-'+m.id+'" value="'+esc(String(m.fee||''))+'" placeholder="0"></div>'+
+        '</div>'+
+        '<div class="fg" style="margin:0"><label>型號</label><input type="text" id="emm-'+m.id+'" value="'+esc(m.model)+'" placeholder="型號"></div>'+
+        '</div>';
+    }
+  }).join('');
+}
+
+function saveEditMachineValues(){
+  editMachines.forEach(function(m){
+    const b=document.getElementById('emb-'+m.id);
+    const mo=document.getElementById('emm-'+m.id);
+    const f=document.getElementById('emf-'+m.id);
+    if(b) m.brand=b.value.trim();
+    if(mo) m.model=mo.value.trim();
+    if(f) m.fee=parseInt(f.value)||0;
+  });
+}
+
+function addEditMachine(){
+  saveEditMachineValues();
+  const id='em'+Date.now();
+  editMachines.push({id:id,brand:'',model:'',fee:0});
+  renderEditMachines();
+}
+
+function addEditReturnMachine(){
+  saveEditMachineValues();
+  const id='em'+Date.now();
+  editMachines.push({id:id,brand:'',model:'',fee:0});
+  renderEditMachines();
+}
+
+function removeEditMachine(id){
+  saveEditMachineValues();
+  editMachines=editMachines.filter(function(m){ return m.id!==id; });
+  renderEditMachines();
+}
+
+function getEditMachinesData(){
+  saveEditMachineValues();
+  return editMachines.map(function(m){
+    return {brand:m.brand||'', model:m.model||'', fee:m.fee||0};
+  });
+}
+
+function showEditConfirm(){
+  document.getElementById('edit-confirm-modal').classList.add('show');
+}
+function closeEditConfirm(){
+  document.getElementById('edit-confirm-modal').classList.remove('show');
+}
+
 function closeEditModal(){
   pendingEditId='';
+  editMachines=[];
+  editIsReturn=false;
   document.getElementById('edit-modal').classList.remove('show');
+  document.getElementById('edit-confirm-modal').classList.remove('show');
+  // 清空機型 DOM 避免殘留
+  const ml=document.getElementById('edit-machine-list');
+  const rml=document.getElementById('edit-return-machine-list');
+  if(ml) ml.innerHTML='';
+  if(rml) rml.innerHTML='';
 }
+
 async function confirmEdit(){
   if(!pendingEditId) return;
+  closeEditConfirm();
   const id=pendingEditId;
   const btn=document.getElementById('edit-confirm-btn');
   btn.disabled=true; btn.textContent='儲存中...';
@@ -1342,23 +1560,35 @@ async function confirmEdit(){
     addr:document.getElementById('edit-addr').value.trim(),
     shipno:document.getElementById('edit-shipno').value.trim(),
     trackno:document.getElementById('edit-trackno').value.trim(),
-    note:document.getElementById('edit-note').value.trim()
+    note:document.getElementById('edit-note').value.trim(),
+    kw:document.getElementById('edit-kw').value.trim(),
+    extra_zone:document.getElementById('edit-extra-zone').value.trim(),
+    extra_floor:document.getElementById('edit-extra-floor').value.trim(),
+    cod:document.getElementById('edit-cod').value.trim(),
+    delivery_only:document.getElementById('edit-delivery-only').value.trim(),
+    rejected:document.getElementById('edit-rejected').value.trim(),
+    machines:getEditMachinesData()
   };
   try{
     const res=await fetch(SCRIPT_URL,{
       method:'POST',headers:{'Content-Type':'text/plain'},
-      body:JSON.stringify({action:'updateRecord',id:id,car:localStorage.getItem('ys_locked_car')||'',deviceKey:getDeviceKey(),updates:updates})
+      body:JSON.stringify({action:'updateRecord',id:id,car:getLockedCar(),deviceKey:getDeviceKey(),updates:updates})
     });
     const json=await res.json();
     if(json.success){
-      // 同步本機記錄
+      // 同步 currentOrders（畫面資料）— 標記 editedOnce
+      currentOrders=currentOrders.map(function(o){
+        if(String(o.id)===String(id)){ return Object.assign({},o,updates,{editedOnce:true}); }
+        return o;
+      });
+      // 同步 localOrders（本機快取）
       localOrders=localOrders.map(function(o){
-        if(String(o.id)===String(id)){ return Object.assign({},o,updates); }
+        if(String(o.id)===String(id)){ return Object.assign({},o,updates,{editedOnce:true}); }
         return o;
       });
       localStorage.setItem('ys_local',JSON.stringify(localOrders.slice(0,200)));
       closeEditModal();
-      showToast('success','✅ 修改成功','工單資料已更新。',function(){renderRecords();});
+      showToast('success','✅ 修改成功，工單已鎖定','此工單已完成修改並鎖定，無法再次修改。',function(){renderRecords();});
     } else {
       showToast('error','❌ 修改失敗',json.error||'請稍後再試');
     }
