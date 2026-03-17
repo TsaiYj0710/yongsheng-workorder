@@ -192,8 +192,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang TC','Microsoft Jheng
     <div class="modal-title">🗑️ 確認刪除</div>
     <div class="modal-msg" id="del-modal-msg">確定要刪除這筆工單嗎？此操作無法復原。</div>
     <div class="modal-btns">
-      <button class="modal-btn modal-btn-cancel" onclick="closeDelModal()">取消</button>
-      <button class="modal-btn modal-btn-confirm" onclick="confirmDelete()">確認刪除</button>
+      <button class="modal-btn modal-btn-cancel" id="del-cancel-btn" onclick="closeDelModal()">取消</button>
+      <button class="modal-btn modal-btn-confirm" id="del-confirm-btn" onclick="confirmDelete()">確認刪除</button>
     </div>
   </div>
 </div>
@@ -1306,11 +1306,20 @@ function openDelModal(id, name){
 function closeDelModal(){
   pendingDeleteId='';
   document.getElementById('del-modal').classList.remove('show');
+  // 恢復按鈕狀態
+  const cb=document.getElementById('del-confirm-btn');
+  const ccb=document.getElementById('del-cancel-btn');
+  if(cb){ cb.disabled=false; cb.textContent='確認刪除'; }
+  if(ccb){ ccb.disabled=false; }
 }
 async function confirmDelete(){
   if(!pendingDeleteId) return;
   const id=pendingDeleteId;
-  closeDelModal();
+  // 顯示刪除中狀態
+  const confirmDelBtn=document.getElementById('del-confirm-btn');
+  const cancelDelBtn=document.getElementById('del-cancel-btn');
+  if(confirmDelBtn){ confirmDelBtn.disabled=true; confirmDelBtn.textContent='⏳ 刪除中...'; }
+  if(cancelDelBtn){ cancelDelBtn.disabled=true; }
   try{
     const res=await fetch(SCRIPT_URL,{
       method:'POST',headers:{'Content-Type':'text/plain'},
@@ -1318,15 +1327,20 @@ async function confirmDelete(){
     });
     const json=await res.json();
     if(json.success){
+      closeDelModal();
       // 同步 currentOrders（畫面）與 localOrders（本機快取）
       currentOrders=currentOrders.filter(function(o){ return String(o.id)!==String(id); });
       localOrders=localOrders.filter(function(o){ return String(o.id)!==String(id); });
       localStorage.setItem('ys_local',JSON.stringify(localOrders.slice(0,200)));
       showToast('success','✅ 刪除成功','工單已從 Google Sheets 刪除。',function(){renderRecords();});
     } else {
+      closeDelModal();
       showToast('error','❌ 刪除失敗',json.error||'請稍後再試');
     }
-  }catch(e){ showToast('error','❌ 網路錯誤','請確認網路後再試'); }
+  }catch(e){
+    closeDelModal();
+    showToast('error','❌ 網路錯誤','請確認網路後再試');
+  }
 }
 
 // ── 補照片 ──
