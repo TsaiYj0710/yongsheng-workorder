@@ -127,6 +127,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang TC','Microsoft Jheng
 .rec-btn-photo{background:#eff6ff;color:#1a5fa8}
 .rec-btn-edit{background:#f0fdf4;color:#15803d}
 .rec-btn-del{background:#fff1f2;color:#b42318}
+.rec-btn[disabled]{opacity:.55;cursor:not-allowed}
 .modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9998;background:rgba(0,0,0,0.5);align-items:center;justify-content:center}
 .modal-overlay.show{display:flex}
 .modal-box{background:#fff;border-radius:16px;padding:24px;max-width:340px;width:90%}
@@ -525,7 +526,7 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzRcPrGV7o6PaZS2ik8w
 const MAX_MACHINES = 6;
 let photoData=[], localOrders=JSON.parse(localStorage.getItem('ys_local')||'[]');
 let invoiceVal='', machines=[], pendingCar='';
-const lockedCar = localStorage.getItem('ys_locked_car')||'';
+let currentOrders=[];
 
 // 裝置碼：綁定時自動產生，之後固定不變
 function getDeviceKey(){
@@ -540,6 +541,7 @@ function getDeviceKey(){
 window.onload = function(){
   const p = new URLSearchParams(window.location.search).get('admin');
   if(p === 'true' || p === '1'){ showAdmin(); return; }
+  const lockedCar = localStorage.getItem('ys_locked_car')||'';
   if(lockedCar){ showLoginScreen(lockedCar); }
   else { document.getElementById('setup-screen').style.display='flex'; }
 };
@@ -553,6 +555,7 @@ function showLoginScreen(car){
 }
 
 async function doLogin(){
+  const lockedCar = localStorage.getItem('ys_locked_car')||'';
   const input=document.getElementById('login-pw').value.trim();
   if(!input){ document.getElementById('login-err').style.display='block'; return; }
   document.querySelector('.btn-login').disabled=true;
@@ -870,7 +873,11 @@ function initMain(car){
   document.getElementById('header-badge').textContent=car;
   document.getElementById('car-display').textContent=car;
   document.getElementById('f-date').value=getTodayText();
-  machines=[];addMachine();
+  machines=[];
+  returnMachines=[];
+  document.getElementById('machine-list').innerHTML='';
+  document.getElementById('return-machine-list').innerHTML='';
+  addMachine();
 }
 
 function addMachine(brand,model,fee){
@@ -1176,7 +1183,9 @@ async function renderRecords(){
         '</div>'+
         '<div class="rec-actions">'+
         '<button class="rec-btn rec-btn-photo" onclick="openPhotoModal(\''+safeId+'\')">📷 補照片</button>'+
-        '<button class="rec-btn rec-btn-edit" onclick="openEditModal(\''+safeId+'\')">✏️ 編輯</button>'+
+        (o.editedOnce
+          ? '<button class="rec-btn rec-btn-edit" disabled title="此工單已修改過一次">🔒 已編輯</button>'
+          : '<button class="rec-btn rec-btn-edit" onclick="openEditModal(\''+safeId+'\')">✏️ 編輯</button>')+
         '<button class="rec-btn rec-btn-del" onclick="openDelModal(\''+safeId+'\',\''+safeName2+'\')">🗑️ 刪除</button>'+
         '</div>'+
         '</div>';
@@ -1353,7 +1362,11 @@ async function confirmEdit(){
     if(json.success){
       // 同步本機記錄
       localOrders=localOrders.map(function(o){
-        if(String(o.id)===String(id)){ return Object.assign({},o,updates); }
+        if(String(o.id)===String(id)){ return Object.assign({},o,updates,{editedOnce:true}); }
+        return o;
+      });
+      currentOrders=currentOrders.map(function(o){
+        if(String(o.id)===String(id)){ return Object.assign({},o,updates,{editedOnce:true}); }
         return o;
       });
       localStorage.setItem('ys_local',JSON.stringify(localOrders.slice(0,200)));
