@@ -171,6 +171,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang TC','Microsoft Jheng
 .scan-icon{font-size:32px;margin-bottom:6px}
 .scan-area p{font-size:13px;color:#1a5fa8;font-weight:500}
 .scan-area small{font-size:11px;color:#667085}
+.scan-btn{flex:1;padding:14px 8px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;border:2px solid #1a5fa8;background:#f0f5ff;color:#1a5fa8;font-family:inherit;margin-bottom:10px}
+.scan-btn:hover{background:#dbeafe}
 .scan-loading{display:none;background:#eff8ff;border:1px solid #b2ddff;border-radius:10px;padding:12px;font-size:13px;color:#1849a9;text-align:center;margin-bottom:10px}
 </style>
 </head>
@@ -444,12 +446,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang TC','Microsoft Jheng
 
       <div class="card" id="scan-card">
         <div class="card-title">🤖 AI 掃描單據（選用）</div>
-        <div class="scan-area" onclick="document.getElementById('scan-input').click()">
-          <div class="scan-icon">📄</div>
-          <p>拍照或上傳出貨單 / 宅配單</p>
-          <small>AI 自動辨識地址、收件人、機型等資料</small>
-          <input type="file" id="scan-input" accept="image/*" style="display:none" onchange="scanDocument(this)">
+        <p style="font-size:13px;color:#667085;margin-bottom:10px">拍照或從相簿選出貨單 / 宅配單，AI 自動辨識地址、收件人、機型等資料</p>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="scan-btn" onclick="document.getElementById('scan-camera-input').click()">📷 直接拍照掃描</button>
+          <button type="button" class="scan-btn" onclick="document.getElementById('scan-album-input').click()">🖼️ 從相簿選照片</button>
         </div>
+        <input type="file" id="scan-camera-input" accept="image/*" capture="environment" style="display:none" onchange="scanDocument(this)">
+        <input type="file" id="scan-album-input" accept="image/jpeg,image/png,image/heic,image/heif,image/webp" style="display:none" onchange="scanDocument(this)">
         <div class="scan-loading" id="scan-loading">🤖 AI 辨識中，請稍候約 5 秒...</div>
         <div id="scan-result"></div>
       </div>
@@ -1204,7 +1207,8 @@ function resetForm(){
   document.getElementById('photo-count').textContent='';
   document.getElementById('f-photos').value='';
   document.getElementById('scan-result').innerHTML='';
-  document.getElementById('scan-input').value='';
+  document.getElementById('scan-camera-input').value='';
+  document.getElementById('scan-album-input').value='';
   document.getElementById('f-date').value=getTodayText();
   photoData=[];invoiceVal='';
   ['inv-yes','inv-no','inv-company'].forEach(id=>document.getElementById(id).classList.remove('sel-inv'));
