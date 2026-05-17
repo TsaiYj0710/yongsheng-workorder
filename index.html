@@ -257,34 +257,47 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang TC','Microsoft Jheng
   </div>
 </div>
 
-<!-- 補照片 modal -->
+<!-- 補照片 modal（選檔＋成功狀態合一，避免雙 modal 疊加） -->
 <div class="modal-overlay" id="photo-modal">
   <div class="modal-box">
-    <div class="modal-title">📷 補上傳照片</div>
-    <div class="modal-msg" style="margin-bottom:8px">選擇要補傳的照片（一次最多 5 張）</div>
-    <div class="photo-area" onclick="document.getElementById('add-photos-input').click()" style="margin-bottom:12px">
-      <div class="icon">📷</div>
-      <p>點此選擇照片<br><span>支援 JPG、PNG（最多 5 張）</span></p>
-      <input type="file" id="add-photos-input" multiple accept="image/*" style="display:none" onchange="previewAddPhotos(this)">
+    <!-- 選檔狀態（預設顯示） -->
+    <div id="photo-select-state">
+      <div class="modal-title">📷 補上傳照片</div>
+      <div style="font-size:13px;color:#667085;margin-bottom:8px">選擇要補傳的照片（一次最多 5 張）</div>
+      <div class="photo-area" onclick="document.getElementById('add-photos-input').click()" style="margin-bottom:12px">
+        <div class="icon">📷</div>
+        <p>點此選擇照片<br><span>支援 JPG、PNG（最多 5 張）</span></p>
+        <input type="file" id="add-photos-input" multiple accept="image/*" style="display:none" onchange="previewAddPhotos(this)">
+      </div>
+      <div id="add-photo-preview" class="photo-preview"></div>
+      <div id="add-photo-count" class="photo-count"></div>
+      <div class="modal-btns" style="margin-top:12px">
+        <button class="modal-btn modal-btn-cancel" onclick="closePhotoModal()">取消</button>
+        <button class="modal-btn" id="add-photos-confirm-btn" style="background:#1a5fa8;color:#fff" onclick="confirmAddPhotos()">上傳照片</button>
+      </div>
     </div>
-    <div id="add-photo-preview" class="photo-preview"></div>
-    <div id="add-photo-count" class="photo-count"></div>
-    <div class="modal-btns" style="margin-top:12px">
-      <button class="modal-btn modal-btn-cancel" onclick="closePhotoModal()">取消</button>
-      <button class="modal-btn" id="add-photos-confirm-btn" style="background:#1a5fa8;color:#fff" onclick="confirmAddPhotos()">上傳照片</button>
+    <!-- 成功狀態（上傳完成後顯示） -->
+    <div id="photo-success-state" style="display:none;text-align:center">
+      <div style="font-size:44px;margin-bottom:14px">✅</div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:10px">照片已上傳成功</div>
+      <div style="font-size:14px;color:#667085;margin-bottom:20px;line-height:1.6">是否繼續補傳照片？</div>
+      <div class="modal-btns">
+        <button class="modal-btn" style="background:#1a5fa8;color:#fff" onclick="continueAddPhotos()">繼續上傳</button>
+        <button class="modal-btn modal-btn-cancel" onclick="finishAddPhotos()">完成</button>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- 補照片成功選擇 modal -->
-<div class="modal-overlay" id="photo-success-modal" style="z-index:10000">
+<!-- 新增工單送出成功 modal（有照片時提示補傳） -->
+<div class="modal-overlay" id="submit-success-modal">
   <div class="modal-box" style="text-align:center">
-    <div style="font-size:40px;margin-bottom:12px">✅</div>
-    <div class="modal-title" style="justify-content:center;margin-bottom:12px">照片已上傳成功</div>
-    <div class="modal-msg">是否繼續補傳照片？</div>
+    <div style="font-size:44px;margin-bottom:14px">✅</div>
+    <div style="font-size:16px;font-weight:700;margin-bottom:10px">工單送出成功！</div>
+    <div style="font-size:14px;color:#667085;margin-bottom:20px;line-height:1.6">是否繼續補傳更多照片？</div>
     <div class="modal-btns">
-      <button class="modal-btn" style="background:#1a5fa8;color:#fff" onclick="continueAddPhotos()">繼續上傳</button>
-      <button class="modal-btn modal-btn-cancel" onclick="finishAddPhotos()">完成</button>
+      <button class="modal-btn" style="background:#1a5fa8;color:#fff" onclick="submitSuccessContinuePhotos()">繼續補傳</button>
+      <button class="modal-btn modal-btn-cancel" onclick="submitSuccessFinish()">完成</button>
     </div>
   </div>
 </div>
@@ -1080,11 +1093,19 @@ async function submitOrder(){
       const res=await fetch(SCRIPT_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payload)});
       const json=await res.json();
       if(json.success){
-        localOrders.unshift({...payload,photos:[],photoCount:photoData.length,
-          photo:photoData.length>0?'有（'+photoData.length+'張）':'無',
+        const photoCountThisSubmit=photoData.length;
+        localOrders.unshift({...payload,photos:[],photoCount:photoCountThisSubmit,
+          photo:photoCountThisSubmit>0?'有（'+photoCountThisSubmit+'張）':'無',
           editedOnce:false});
         localStorage.setItem('ys_local',JSON.stringify(localOrders.slice(0,200)));
-        showToast('success','✅ 工單送出成功！',typeName+'工單已存入 Google Sheets，照片已上傳至 Google Drive。',function(){resetForm();});
+        if(photoCountThisSubmit>=MAX_PHOTOS){
+          // 本次已上傳滿 5 張，提供繼續補傳選項（沿用前端產生的工單 ID）
+          lastSubmittedId=payload.id;
+          resetForm();
+          document.getElementById('submit-success-modal').classList.add('show');
+        } else {
+          showToast('success','✅ 工單送出成功！',typeName+'工單已存入 Google Sheets，照片已上傳至 Google Drive。',function(){resetForm();});
+        }
       }else{ showToast('error','❌ 傳送失敗',json.error||'未知錯誤，請稍後再試。'); }
     }catch(err){ showToast('error','❌ 網路錯誤','請確認網路連線後再試。'); }
     finally{
@@ -1350,6 +1371,7 @@ async function confirmDelete(){
 
 // ── 補照片 ──
 let pendingPhotoId='', addPhotoData=[];
+let lastSubmittedId=null;
 
 function openPhotoModal(id){
   pendingPhotoId=id;
@@ -1357,6 +1379,8 @@ function openPhotoModal(id){
   document.getElementById('add-photos-input').value='';
   document.getElementById('add-photo-preview').innerHTML='';
   document.getElementById('add-photo-count').textContent='';
+  document.getElementById('photo-select-state').style.display='block';
+  document.getElementById('photo-success-state').style.display='none';
   document.getElementById('photo-modal').classList.add('show');
 }
 
@@ -1364,7 +1388,8 @@ function closePhotoModal(){
   pendingPhotoId='';
   addPhotoData=[];
   document.getElementById('photo-modal').classList.remove('show');
-  document.getElementById('photo-success-modal').classList.remove('show');
+  document.getElementById('photo-select-state').style.display='block';
+  document.getElementById('photo-success-state').style.display='none';
   const inp=document.getElementById('add-photos-input');
   const prev=document.getElementById('add-photo-preview');
   const cnt=document.getElementById('add-photo-count');
@@ -1432,8 +1457,9 @@ async function confirmAddPhotos(){
         return o;
       });
       localStorage.setItem('ys_local',JSON.stringify(localOrders.slice(0,200)));
-      // 成功後顯示選擇 modal，不直接關閉
-      document.getElementById('photo-success-modal').classList.add('show');
+      // 成功後切換到成功狀態（同一個 modal 內切換，不另開彈窗）
+      document.getElementById('photo-select-state').style.display='none';
+      document.getElementById('photo-success-state').style.display='block';
     } else {
       showToast('error','❌ 上傳失敗',json.error||'請稍後再試');
     }
@@ -1444,20 +1470,36 @@ async function confirmAddPhotos(){
   }
 }
 
-// 繼續補傳：清空已選，保留在 modal
+// 繼續補傳：清空已選照片與預覽，切回選檔狀態，保留工單 context
 function continueAddPhotos(){
-  document.getElementById('photo-success-modal').classList.remove('show');
   addPhotoData=[];
   document.getElementById('add-photos-input').value='';
   document.getElementById('add-photo-preview').innerHTML='';
   document.getElementById('add-photo-count').textContent='';
+  const confirmBtn=document.getElementById('add-photos-confirm-btn');
+  if(confirmBtn){ confirmBtn.disabled=false; confirmBtn.textContent='上傳照片'; }
+  document.getElementById('photo-success-state').style.display='none';
+  document.getElementById('photo-select-state').style.display='block';
 }
 
-// 完成：關閉 modal，重新整理列表
+// 完成：關閉補照片 modal，重新整理列表
 function finishAddPhotos(){
-  document.getElementById('photo-success-modal').classList.remove('show');
   closePhotoModal();
   renderRecords();
+}
+
+// ── 新增工單成功後：繼續補傳照片 ──
+function submitSuccessContinuePhotos(){
+  document.getElementById('submit-success-modal').classList.remove('show');
+  if(lastSubmittedId){
+    openPhotoModal(String(lastSubmittedId));
+  } else {
+    renderRecords();
+  }
+}
+function submitSuccessFinish(){
+  document.getElementById('submit-success-modal').classList.remove('show');
+  lastSubmittedId=null;
 }
 
 // ── 編輯記錄 ──
