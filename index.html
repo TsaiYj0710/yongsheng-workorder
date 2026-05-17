@@ -1023,8 +1023,32 @@ function setInvoice(val){
   }
 }
 
+// ── 照片壓縮（最大邊 1600px，輸出 JPEG 0.75）──
+function compressPhoto(file){
+  return new Promise(function(resolve){
+    const reader=new FileReader();
+    reader.onload=function(e){
+      const img=new Image();
+      img.onload=function(){
+        const MAX=1600;
+        let w=img.width, h=img.height;
+        if(w>MAX||h>MAX){
+          if(w>=h){ h=Math.round(h*MAX/w); w=MAX; }
+          else { w=Math.round(w*MAX/h); h=MAX; }
+        }
+        const canvas=document.createElement('canvas');
+        canvas.width=w; canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(canvas.toDataURL('image/jpeg',0.75));
+      };
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 // ── 照片預覽（新增工單，限 5 張）──
-function previewPhotos(inp){
+async function previewPhotos(inp){
   const files = Array.from(inp.files);
   if(!files.length) return;
   if(files.length > MAX_PHOTOS){
@@ -1037,18 +1061,16 @@ function previewPhotos(inp){
   }
   photoData=[];
   document.getElementById('photo-preview').innerHTML='';
+  document.getElementById('photo-count').textContent='壓縮中...';
   let loaded=0;
-  files.forEach(function(f){
-    const r=new FileReader();
-    r.onload=function(e){
-      photoData.push(e.target.result);
-      const img=document.createElement('img');
-      img.className='photo-thumb'; img.src=e.target.result;
-      document.getElementById('photo-preview').appendChild(img);
-      document.getElementById('photo-count').textContent='已選 '+(++loaded)+' 張照片';
-    };
-    r.readAsDataURL(f);
-  });
+  for(const f of files){
+    const dataUrl=await compressPhoto(f);
+    photoData.push(dataUrl);
+    const img=document.createElement('img');
+    img.className='photo-thumb'; img.src=dataUrl;
+    document.getElementById('photo-preview').appendChild(img);
+    document.getElementById('photo-count').textContent='已選 '+(++loaded)+' 張照片';
+  }
 }
 
 async function submitOrder(){
@@ -1399,7 +1421,7 @@ function closePhotoModal(){
 }
 
 // ── 補照片選檔預覽（限 5 張）──
-function previewAddPhotos(input){
+async function previewAddPhotos(input){
   const files=Array.from(input.files);
   if(!files.length) return;
   if(files.length > MAX_PHOTOS){
@@ -1412,18 +1434,16 @@ function previewAddPhotos(input){
   }
   addPhotoData=[];
   document.getElementById('add-photo-preview').innerHTML='';
+  document.getElementById('add-photo-count').textContent='壓縮中...';
+  for(const file of files){
+    const dataUrl=await compressPhoto(file);
+    addPhotoData.push(dataUrl);
+    const img=document.createElement('img');
+    img.src=dataUrl;
+    img.style.cssText='width:60px;height:60px;object-fit:cover;border-radius:6px;margin:2px';
+    document.getElementById('add-photo-preview').appendChild(img);
+  }
   document.getElementById('add-photo-count').textContent='已選擇 '+files.length+' 張';
-  files.forEach(function(file){
-    const reader=new FileReader();
-    reader.onload=function(e){
-      addPhotoData.push(e.target.result);
-      const img=document.createElement('img');
-      img.src=e.target.result;
-      img.style.cssText='width:60px;height:60px;object-fit:cover;border-radius:6px;margin:2px';
-      document.getElementById('add-photo-preview').appendChild(img);
-    };
-    reader.readAsDataURL(file);
-  });
 }
 
 // ── 補照片上傳 ──
