@@ -675,22 +675,37 @@ async function scanDocument(inp){
     if(p.addr)document.getElementById('f-addr').value=p.addr;
     if(p.shipno)document.getElementById('f-shipno').value=p.shipno;
     if(p.trackno)document.getElementById('f-trackno').value=p.trackno;
-    if(p.machines&&p.machines.length>0){
+    // 依 qty 展開機型（同型號已由後端合併為一筆），上限 6 台
+    let expanded=[];
+    (p.machines||[]).forEach(function(m){
+      const q=Math.max(1,parseInt(m.qty,10)||1);
+      for(let i=0;i<q;i++) expanded.push(m);
+    });
+    const overflow = expanded.length>MAX_MACHINES;
+    expanded = expanded.slice(0,MAX_MACHINES);
+    if(expanded.length>0){
       if(orderType==='return'){
         returnMachines=[];
         document.getElementById('return-machine-list').innerHTML='';
-        p.machines.forEach(function(m){addReturnMachine(m.brand||'',m.model||'');});
+        expanded.forEach(function(m){addReturnMachine(m.brand||'',m.model||'');});
       } else {
         machines=[];
         document.getElementById('machine-list').innerHTML='';
-        p.machines.forEach(function(m){addMachine(m.brand||'',m.model||'','');});
+        expanded.forEach(function(m){addMachine(m.brand||'',m.model||'','');});
       }
     }
     let filled=[];
     if(p.name)filled.push('收件人：'+p.name);
     if(p.addr)filled.push('地址已填入');
-    if(p.machines?.length)filled.push('機型 '+p.machines.length+' 筆');
-    result.innerHTML='<div style="background:#ecfdf3;border:1px solid #a9efc5;border-radius:10px;padding:12px;font-size:13px;color:#027a48;margin-bottom:10px">✅ 辨識完成！已自動填入：'+filled.join('、')+'。請確認並補充安裝費等資料。</div>';
+    if(expanded.length)filled.push('機型 '+expanded.length+' 台');
+    let html='<div style="background:#ecfdf3;border:1px solid #a9efc5;border-radius:10px;padding:12px;font-size:13px;color:#027a48;margin-bottom:10px">✅ 辨識完成！已自動填入：'+esc(filled.join('、'))+'。請確認並補充安裝費等資料。</div>';
+    if(overflow){
+      html+='<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:10px;padding:12px;font-size:13px;color:#7a5f00;margin-bottom:10px">⚠️ 辨識到的設備數量超過 6 台，已先填入前 6 台，請自行核對。</div>';
+    }
+    if(p.needsReview){
+      html+='<div style="background:#fef3f2;border:1px solid #fecdca;border-radius:10px;padding:12px;font-size:13px;color:#b42318;margin-bottom:10px">⚠️ AI 對設備數量沒有把握，請務必人工核對機型與數量。'+(p.reviewNotes?'<br>原因：'+esc(p.reviewNotes):'')+'</div>';
+    }
+    result.innerHTML=html;
   }catch(e){
     result.innerHTML='<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:10px;padding:12px;font-size:13px;color:#7a5f00;margin-bottom:10px">📝 無法自動辨識，請手動填寫下方欄位。</div>';
   }finally{loading.style.display='none';inp.value='';}
