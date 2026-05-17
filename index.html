@@ -256,20 +256,35 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang TC','Microsoft Jheng
     </div>
   </div>
 </div>
+
+<!-- 補照片 modal -->
 <div class="modal-overlay" id="photo-modal">
   <div class="modal-box">
     <div class="modal-title">📷 補上傳照片</div>
-    <div class="modal-msg">選擇要補傳的照片（可多選）</div>
+    <div class="modal-msg" style="margin-bottom:8px">選擇要補傳的照片（一次最多 5 張）</div>
     <div class="photo-area" onclick="document.getElementById('add-photos-input').click()" style="margin-bottom:12px">
       <div class="icon">📷</div>
-      <p>點此選擇照片<br><span>支援 JPG、PNG</span></p>
+      <p>點此選擇照片<br><span>支援 JPG、PNG（最多 5 張）</span></p>
       <input type="file" id="add-photos-input" multiple accept="image/*" style="display:none" onchange="previewAddPhotos(this)">
     </div>
     <div id="add-photo-preview" class="photo-preview"></div>
     <div id="add-photo-count" class="photo-count"></div>
     <div class="modal-btns" style="margin-top:12px">
       <button class="modal-btn modal-btn-cancel" onclick="closePhotoModal()">取消</button>
-      <button class="modal-btn" style="background:#1a5fa8;color:#fff" onclick="confirmAddPhotos()">上傳照片</button>
+      <button class="modal-btn" id="add-photos-confirm-btn" style="background:#1a5fa8;color:#fff" onclick="confirmAddPhotos()">上傳照片</button>
+    </div>
+  </div>
+</div>
+
+<!-- 補照片成功選擇 modal -->
+<div class="modal-overlay" id="photo-success-modal" style="z-index:10000">
+  <div class="modal-box" style="text-align:center">
+    <div style="font-size:40px;margin-bottom:12px">✅</div>
+    <div class="modal-title" style="justify-content:center;margin-bottom:12px">照片已上傳成功</div>
+    <div class="modal-msg">是否繼續補傳照片？</div>
+    <div class="modal-btns">
+      <button class="modal-btn" style="background:#1a5fa8;color:#fff" onclick="continueAddPhotos()">繼續上傳</button>
+      <button class="modal-btn modal-btn-cancel" onclick="finishAddPhotos()">完成</button>
     </div>
   </div>
 </div>
@@ -321,7 +336,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang TC','Microsoft Jheng
 <!-- 老闆管理介面 -->
 <div class="admin-screen" id="admin-screen">
 
-  <!-- 管理登入畫面 -->
   <div class="admin-card" id="admin-login-card">
     <div class="admin-title">🔐 老闆管理介面</div>
     <div class="pw-row">
@@ -334,7 +348,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang TC','Microsoft Jheng
     </div>
   </div>
 
-  <!-- 管理主畫面 -->
   <div id="admin-main" style="display:none;width:100%;max-width:400px">
     <div class="admin-card">
       <div class="admin-title">🔐 老闆管理介面 — 通行碼設定</div>
@@ -422,7 +435,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang TC','Microsoft Jheng
           <div class="scan-icon">📄</div>
           <p>拍照或上傳出貨單 / 宅配單</p>
           <small>AI 自動辨識地址、收件人、機型等資料</small>
-          <input type="file" id="scan-input" accept="image/*" style="display:none" onchange="scanDocument(this)">
+          <input type="file" id="scan-input" accept="image/*" capture="environment" style="display:none" onchange="scanDocument(this)">
         </div>
         <div class="scan-loading" id="scan-loading">🤖 AI 辨識中，請稍候約 5 秒...</div>
         <div id="scan-result"></div>
@@ -468,7 +481,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang TC','Microsoft Jheng
         <button class="btn-add-machine" onclick="addReturnMachine()" id="btn-add-rm">＋ 新增機型</button>
       </div>
 
-      <!-- 額外費用與狀態（三種工單都有） -->
+      <!-- 額外費用與狀態 -->
       <div class="card">
         <div class="card-title">💰 額外費用與狀態</div>
         <div class="row2">
@@ -506,12 +519,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang TC','Microsoft Jheng
         </div>
       </div>
 
-      <!-- 施工照片與備註（三種工單都有） -->
+      <!-- 施工照片與備註 -->
       <div class="card">
-        <div class="sec" style="margin-top:0">施工照片</div>
+        <div class="sec" style="margin-top:0">施工照片（一次最多 5 張）</div>
         <div class="photo-area" onclick="document.getElementById('f-photos').click()">
           <div class="icon">📷</div>
-          <p>點此上傳照片（可多選）<br><span>支援 JPG、PNG</span></p>
+          <p>點此上傳照片（可多選，最多 5 張）<br><span>支援 JPG、PNG</span></p>
           <input type="file" id="f-photos" multiple accept="image/*" style="display:none" onchange="previewPhotos(this)">
         </div>
         <div class="photo-preview" id="photo-preview"></div>
@@ -543,7 +556,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang TC','Microsoft Jheng
         <div class="guide-step"><div class="step-num">2</div><span>輸入車隊通行碼進入系統</span></div>
         <div class="guide-step"><div class="step-num">3</div><span>填寫基本資訊：日期、收件人、地址、單號</span></div>
         <div class="guide-step"><div class="step-num">4</div><span>用「＋新增機型」增加每台機型、品牌、安裝費（最多6台）</span></div>
-        <div class="guide-step"><div class="step-num">5</div><span>選發票、上傳施工照片、填備註，按「送出工單」完成</span></div>
+        <div class="guide-step"><div class="step-num">5</div><span>選發票、上傳施工照片（每次最多5張，可分批補傳）、填備註，按「送出工單」完成</span></div>
       </div>
       <div class="card">
         <div class="card-title" style="color:#b42318">🔒 裝置重設（需管理員密碼）</div>
@@ -563,13 +576,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang TC','Microsoft Jheng
 <script>
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzRcPrGV7o6PaZS2ik8wgL2LllEwbb9vBk_U8eF9uiuQYzBOF1kxtmDbRkmHDx_7m_f/exec';
 const MAX_MACHINES = 6;
+const MAX_PHOTOS = 5;
 let photoData=[], localOrders=JSON.parse(localStorage.getItem('ys_local')||'[]');
 let invoiceVal='', machines=[], pendingCar='';
 
-// 車隊：每次都即時從 localStorage 讀取，不用固定常數
 function getLockedCar(){ return localStorage.getItem('ys_locked_car')||''; }
 
-// 裝置碼：綁定時自動產生，之後固定不變
 function getDeviceKey(){
   let key = localStorage.getItem('ys_device_key');
   if(!key){
@@ -597,7 +609,7 @@ function showLoginScreen(car){
 
 async function doLogin(){
   const input=document.getElementById('login-pw').value.trim();
-  const car=getLockedCar(); // 即時讀取，避免第一次綁定後吃到舊值
+  const car=getLockedCar();
   if(!input){ document.getElementById('login-err').style.display='block'; return; }
   if(!car){ document.getElementById('setup-screen').style.display='flex'; return; }
   const loginBtn=document.getElementById('btn-do-login');
@@ -636,7 +648,6 @@ async function scanDocument(inp){
   const result=document.getElementById('scan-result');
   loading.style.display='block'; result.innerHTML='';
   const fullBase64=await new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.readAsDataURL(file);});
-  const base64=fullBase64.split(',')[1];
   try{
     const resp=await fetch(SCRIPT_URL,{
       method:'POST',
@@ -672,11 +683,10 @@ async function scanDocument(inp){
   }finally{loading.style.display='none';inp.value='';}
 }
 
-let orderType = 'install'; // 'install' or 'return'
+let orderType = 'install';
 let returnMachines = [];
 
 function setOrderType(type){
-  // 切換前先儲存目前畫面上的資料
   if(orderType==='install'||orderType==='second'){ saveMachineValues(); }
   if(orderType==='return'){ saveReturnMachineValues(); }
 
@@ -691,13 +701,11 @@ function setOrderType(type){
   const isInstallOrSecond = type==='install' || type==='second';
   const wasInstallOrSecond = prevType==='install' || prevType==='second';
 
-  // 從安裝/二配切換到退機，自動帶入機型資料
   if(type==='return' && wasInstallOrSecond && machines.length>0 && returnMachines.length===0){
     returnMachines = machines.map(function(m){
       return {id:'r'+Date.now()+Math.floor(Math.random()*1000), brand:m.brand||'', model:m.model||''};
     });
   }
-  // 從退機切換到安裝/二配，自動帶入機型資料
   if(isInstallOrSecond && prevType==='return' && returnMachines.length>0 && machines.length===0){
     machines = returnMachines.map(function(m){
       return {id:'m'+Date.now()+Math.floor(Math.random()*1000), brand:m.brand||'', model:m.model||'', fee:''};
@@ -759,7 +767,6 @@ function getReturnMachinesData(){
     model:document.getElementById('rm-'+m.id)?.value.trim()||''
   };});
 }
-
 
 let toastAfterClose = null;
 
@@ -829,7 +836,7 @@ function confirmCar(){
   showLoginScreen(pendingCar);
 }
 
-let adminBossPassword = ''; // 只在記憶體中，不存前端
+let adminBossPassword = '';
 
 async function adminLogin(){
   const pw = document.getElementById('admin-boss-pw').value.trim();
@@ -857,7 +864,6 @@ async function adminLogin(){
 }
 
 async function showAdmin(){
-  // 先隱藏所有其他畫面
   document.getElementById('setup-screen').style.display='none';
   document.getElementById('login-screen').style.display='none';
   document.getElementById('main-screen').style.display='none';
@@ -914,7 +920,6 @@ function initMain(car){
   document.getElementById('header-badge').textContent=car;
   document.getElementById('car-display').textContent=car;
   document.getElementById('f-date').value=getTodayText();
-  // 防止重複累加：先清空再建第一筆
   machines=[];
   returnMachines=[];
   document.getElementById('machine-list').innerHTML='';
@@ -990,14 +995,11 @@ function setInvoice(val){
   const map={'是':'inv-yes','否':'inv-no','公司行號':'inv-company'};
   if(map[val])document.getElementById(map[val]).classList.add('sel-inv');
 
-  // 公司行號欄位
   document.getElementById('company-fields').style.display = val==='公司行號' ? 'block' : 'none';
 
-  // 發票寄送資訊（開發票或公司行號才顯示）
   const showDelivery = val==='是' || val==='公司行號';
   document.getElementById('invoice-delivery').style.display = showDelivery ? 'block' : 'none';
 
-  // 自動帶入上方資料（只在第一次顯示時帶入，避免覆蓋已修改的值）
   if(showDelivery){
     const invName = document.getElementById('f-inv-name');
     const invPhone = document.getElementById('f-inv-phone');
@@ -1008,15 +1010,27 @@ function setInvoice(val){
   }
 }
 
+// ── 照片預覽（新增工單，限 5 張）──
 function previewPhotos(inp){
-  photoData=[];document.getElementById('photo-preview').innerHTML='';
+  const files = Array.from(inp.files);
+  if(!files.length) return;
+  if(files.length > MAX_PHOTOS){
+    alert('一次最多上傳 5 張，請分批上傳。');
+    inp.value='';
+    photoData=[];
+    document.getElementById('photo-preview').innerHTML='';
+    document.getElementById('photo-count').textContent='';
+    return;
+  }
+  photoData=[];
+  document.getElementById('photo-preview').innerHTML='';
   let loaded=0;
-  Array.from(inp.files).forEach(f=>{
+  files.forEach(function(f){
     const r=new FileReader();
-    r.onload=e=>{
+    r.onload=function(e){
       photoData.push(e.target.result);
       const img=document.createElement('img');
-      img.className='photo-thumb';img.src=e.target.result;
+      img.className='photo-thumb'; img.src=e.target.result;
       document.getElementById('photo-preview').appendChild(img);
       document.getElementById('photo-count').textContent='已選 '+(++loaded)+' 張照片';
     };
@@ -1079,7 +1093,6 @@ async function submitOrder(){
       document.getElementById('btn-text').textContent='送出工單';
     }
   } else {
-    // 退機工單
     const returnData=getReturnMachinesData();
     if(!d||!addr||!returnData[0]?.model){
       showToast('error','⚠️ 資料未填完整','請填寫日期、地址，以及至少一筆退機機型。');return;
@@ -1141,7 +1154,6 @@ function resetForm(){
   returnMachines=[];
   document.getElementById('machine-list').innerHTML='';
   document.getElementById('return-machine-list').innerHTML='';
-  // 重設到安裝模式，確保按鈕樣式與 orderType 一致
   orderType='install';
   ['install','second','return'].forEach(function(t){
     const btn=document.getElementById('type-'+t);
@@ -1198,7 +1210,6 @@ async function renderRecords(){
 
     el.innerHTML=orders.slice(0,100).map(function(o){
       const machines=Array.isArray(o.machines)?o.machines:[];
-      // 去重複機型，防止空陣列報錯
       const seen={};
       const uniqueMachines=machines.filter(function(m){
         if(!m||(!m.brand&&!m.model)) return false;
@@ -1215,10 +1226,8 @@ async function renderRecords(){
       const safePhone=esc(o.phone||'');
       const safeInvoice=esc(o.invoice||'');
       const safeMText=esc(mText||'');
-      // 修正日期格式
       const rawDate=o.date||'';
       const displayDate=rawDate.indexOf('GMT')>-1 ? formatYMD(rawDate) : normalizeDateText(rawDate);
-      // 建立時間格式化
       const rawCreated=o.createdAt||'';
       const displayCreated=rawCreated.indexOf('GMT')>-1
         ? new Date(rawCreated).toLocaleString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})
@@ -1251,7 +1260,6 @@ async function renderRecords(){
     }).join('');
 
   }catch(err){
-    // 雲端失敗時，fallback 到本機記錄
     const myOrders=localOrders.filter(function(o){return o.car===car;});
     const todayOrders=myOrders.filter(function(o){return normalizeDateText(o.date)===today;});
     const todayFee=todayOrders.reduce(function(a,o){return a+(o.totalFee||0);},0);
@@ -1306,7 +1314,6 @@ function openDelModal(id, name){
 function closeDelModal(){
   pendingDeleteId='';
   document.getElementById('del-modal').classList.remove('show');
-  // 恢復按鈕狀態
   const cb=document.getElementById('del-confirm-btn');
   const ccb=document.getElementById('del-cancel-btn');
   if(cb){ cb.disabled=false; cb.textContent='確認刪除'; }
@@ -1315,7 +1322,6 @@ function closeDelModal(){
 async function confirmDelete(){
   if(!pendingDeleteId) return;
   const id=pendingDeleteId;
-  // 顯示刪除中狀態
   const confirmDelBtn=document.getElementById('del-confirm-btn');
   const cancelDelBtn=document.getElementById('del-cancel-btn');
   if(confirmDelBtn){ confirmDelBtn.disabled=true; confirmDelBtn.textContent='⏳ 刪除中...'; }
@@ -1328,7 +1334,6 @@ async function confirmDelete(){
     const json=await res.json();
     if(json.success){
       closeDelModal();
-      // 同步 currentOrders（畫面）與 localOrders（本機快取）
       currentOrders=currentOrders.filter(function(o){ return String(o.id)!==String(id); });
       localOrders=localOrders.filter(function(o){ return String(o.id)!==String(id); });
       localStorage.setItem('ys_local',JSON.stringify(localOrders.slice(0,200)));
@@ -1345,6 +1350,7 @@ async function confirmDelete(){
 
 // ── 補照片 ──
 let pendingPhotoId='', addPhotoData=[];
+
 function openPhotoModal(id){
   pendingPhotoId=id;
   addPhotoData=[];
@@ -1353,11 +1359,12 @@ function openPhotoModal(id){
   document.getElementById('add-photo-count').textContent='';
   document.getElementById('photo-modal').classList.add('show');
 }
+
 function closePhotoModal(){
   pendingPhotoId='';
   addPhotoData=[];
   document.getElementById('photo-modal').classList.remove('show');
-  // 清空殘留預覽
+  document.getElementById('photo-success-modal').classList.remove('show');
   const inp=document.getElementById('add-photos-input');
   const prev=document.getElementById('add-photo-preview');
   const cnt=document.getElementById('add-photo-count');
@@ -1365,9 +1372,19 @@ function closePhotoModal(){
   if(prev) prev.innerHTML='';
   if(cnt) cnt.textContent='';
 }
+
+// ── 補照片選檔預覽（限 5 張）──
 function previewAddPhotos(input){
   const files=Array.from(input.files);
   if(!files.length) return;
+  if(files.length > MAX_PHOTOS){
+    alert('一次最多上傳 5 張，請分批上傳。');
+    input.value='';
+    addPhotoData=[];
+    document.getElementById('add-photo-preview').innerHTML='';
+    document.getElementById('add-photo-count').textContent='';
+    return;
+  }
   addPhotoData=[];
   document.getElementById('add-photo-preview').innerHTML='';
   document.getElementById('add-photo-count').textContent='已選擇 '+files.length+' 張';
@@ -1383,14 +1400,17 @@ function previewAddPhotos(input){
     reader.readAsDataURL(file);
   });
 }
+
+// ── 補照片上傳 ──
 async function confirmAddPhotos(){
   if(!pendingPhotoId||!addPhotoData.length){ alert('請先選擇照片');return; }
   const id=pendingPhotoId;
   const photosToUpload=addPhotoData.slice();
   const addCount=photosToUpload.length;
-  // 不立即關modal，改成顯示上傳中
-  const confirmBtn=document.querySelector('#photo-modal .modal-btn[onclick="confirmAddPhotos()"]');
+
+  const confirmBtn=document.getElementById('add-photos-confirm-btn');
   if(confirmBtn){ confirmBtn.disabled=true; confirmBtn.textContent='上傳中...'; }
+
   try{
     const res=await fetch(SCRIPT_URL,{
       method:'POST',headers:{'Content-Type':'text/plain'},
@@ -1398,25 +1418,22 @@ async function confirmAddPhotos(){
     });
     const json=await res.json();
     if(json.success){
-      // 優先用後端回傳的 newPhoto，沒有才自己算
       const newPhotoText = json.newPhoto || (function(){
         const o=currentOrders.find(function(x){ return String(x.id)===String(id); });
         const oldP=o?String(o.photo||''):'';
         return (oldP&&oldP!=='無') ? oldP+'＋補'+addCount+'張' : '有（補'+addCount+'張）';
       })();
-      // 同步 currentOrders
       currentOrders=currentOrders.map(function(o){
         if(String(o.id)===String(id)){ return Object.assign({},o,{photo:newPhotoText}); }
         return o;
       });
-      // 同步 localOrders
       localOrders=localOrders.map(function(o){
         if(String(o.id)===String(id)){ return Object.assign({},o,{photo:newPhotoText}); }
         return o;
       });
       localStorage.setItem('ys_local',JSON.stringify(localOrders.slice(0,200)));
-      closePhotoModal();
-      showToast('success','✅ 照片上傳成功','照片已補傳至 Google Drive。',function(){renderRecords();});
+      // 成功後顯示選擇 modal，不直接關閉
+      document.getElementById('photo-success-modal').classList.add('show');
     } else {
       showToast('error','❌ 上傳失敗',json.error||'請稍後再試');
     }
@@ -1427,6 +1444,22 @@ async function confirmAddPhotos(){
   }
 }
 
+// 繼續補傳：清空已選，保留在 modal
+function continueAddPhotos(){
+  document.getElementById('photo-success-modal').classList.remove('show');
+  addPhotoData=[];
+  document.getElementById('add-photos-input').value='';
+  document.getElementById('add-photo-preview').innerHTML='';
+  document.getElementById('add-photo-count').textContent='';
+}
+
+// 完成：關閉 modal，重新整理列表
+function finishAddPhotos(){
+  document.getElementById('photo-success-modal').classList.remove('show');
+  closePhotoModal();
+  renderRecords();
+}
+
 // ── 編輯記錄 ──
 let pendingEditId='', currentOrders=[];
 let editMachines=[], editIsReturn=false;
@@ -1434,7 +1467,6 @@ let editMachines=[], editIsReturn=false;
 function openEditModal(id){
   const o=currentOrders.find(function(o){ return String(o.id)===String(id); });
   if(!o){ showToast('error','❌ 找不到此工單','請重新整理後再試');return; }
-  // 編輯鎖：已改過直接擋，不進 modal
   if(o.editedOnce){
     showToast('error','🔒 此工單已鎖定','每筆工單只能修改一次，如需協助請聯絡老闆。');
     return;
@@ -1442,7 +1474,6 @@ function openEditModal(id){
   pendingEditId=id;
   editIsReturn = (o.orderType==='退機');
 
-  // 基本欄位
   document.getElementById('edit-name').value=o.name||'';
   document.getElementById('edit-phone').value=o.phone||'';
   document.getElementById('edit-addr').value=o.addr||'';
@@ -1456,17 +1487,14 @@ function openEditModal(id){
   document.getElementById('edit-delivery-only').value=o.delivery_only||'';
   document.getElementById('edit-rejected').value=o.rejected||'';
 
-  // 機型區塊切換
   document.getElementById('edit-machines-wrap').style.display = editIsReturn ? 'none' : 'block';
   document.getElementById('edit-return-machines-wrap').style.display = editIsReturn ? 'block' : 'none';
 
-  // 機型資料初始化
   editMachines = (Array.isArray(o.machines)&&o.machines.length)
     ? o.machines.map(function(m,i){ return {id:'em'+i, brand:m.brand||'', model:m.model||'', fee:m.fee||0}; })
     : [{id:'em0',brand:'',model:'',fee:0}];
   renderEditMachines();
 
-  // 編輯鎖：已改過的工單顯示警告並停用按鈕
   const lockBar = document.getElementById('edit-lock-bar');
   const confirmBtn = document.getElementById('edit-confirm-btn');
   if(o.editedOnce){
@@ -1555,7 +1583,6 @@ function closeEditModal(){
   editIsReturn=false;
   document.getElementById('edit-modal').classList.remove('show');
   document.getElementById('edit-confirm-modal').classList.remove('show');
-  // 清空機型 DOM 避免殘留
   const ml=document.getElementById('edit-machine-list');
   const rml=document.getElementById('edit-return-machine-list');
   if(ml) ml.innerHTML='';
@@ -1590,12 +1617,10 @@ async function confirmEdit(){
     });
     const json=await res.json();
     if(json.success){
-      // 同步 currentOrders（畫面資料）— 標記 editedOnce
       currentOrders=currentOrders.map(function(o){
         if(String(o.id)===String(id)){ return Object.assign({},o,updates,{editedOnce:true}); }
         return o;
       });
-      // 同步 localOrders（本機快取）
       localOrders=localOrders.map(function(o){
         if(String(o.id)===String(id)){ return Object.assign({},o,updates,{editedOnce:true}); }
         return o;
