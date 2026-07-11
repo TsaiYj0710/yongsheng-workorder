@@ -534,7 +534,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang TC','Microsoft Jheng
         <div class="stat-box"><div class="lbl" id="s-fee-label">今日安裝費</div><div class="val" id="s-fee" style="font-size:14px;padding-top:4px">$0</div></div>
       </div>
       <div style="background:#fff;border:1px solid #dde5f0;border-radius:10px;padding:10px 12px;margin-bottom:12px">
-        <div style="font-size:12px;color:#667085;font-weight:700;margin-bottom:6px">查詢範圍（最多 2 個月）</div>
+        <div style="font-size:12px;color:#667085;font-weight:700;margin-bottom:6px">查詢範圍（單次最多 2 個月）</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <div>
             <label for="record-start" style="display:block;font-size:11px;color:#98a2b3;margin-bottom:4px">起日</label>
@@ -545,7 +545,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang TC','Microsoft Jheng
             <input type="date" id="record-end" onchange="renderRecords()" style="width:100%;border:1px solid #d0d5dd;border-radius:9px;padding:10px 12px;font-size:15px;color:#101828;background:#fff">
           </div>
         </div>
-        <div id="record-range-hint" style="font-size:11px;color:#98a2b3;margin-top:6px">預設今天，可自行選擇日期區間。</div>
+        <div id="record-range-hint" style="font-size:11px;color:#98a2b3;margin-top:6px">預設今天，可自行選擇日期區間，單次最多 2 個月。</div>
       </div>
       <div class="rec-list" id="rec-list"></div>
     </div>
@@ -1178,37 +1178,52 @@ function showTab(t){
   if(t==='records'){ setupRecordDateFilter(); renderRecords(); }
 }
 
-function addMonthsText(dateText, months){
-  const d=new Date(dateText+'T00:00:00');
+function inputDateText(dateInput){
+  const d=new Date(dateInput);
+  if(isNaN(d.getTime())) return String(dateInput||'').replace(/\//g,'-').trim();
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,'0');
+  const day=String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+day;
+}
+function getTodayInputText(){
+  const d=new Date();
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,'0');
+  const day=String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+day;
+}
+function addMonthsInputText(dateText, months){
+  const d=new Date(String(dateText||'').replace(/\//g,'-')+'T00:00:00');
   d.setMonth(d.getMonth()+months);
-  return formatYMD(d);
+  return inputDateText(d);
 }
 function setupRecordDateFilter(){
   const start=document.getElementById('record-start');
   const end=document.getElementById('record-end');
   if(!start||!end)return;
-  const today=getTodayText();
-  const oldest=addMonthsText(today,-2);
-  [start,end].forEach(function(inp){ inp.min=oldest; inp.max=today; });
+  const today=getTodayInputText();
+  [start,end].forEach(function(inp){ inp.removeAttribute('min'); inp.max=today; });
   if(!start.value)start.value=today;
   if(!end.value)end.value=today;
-  if(start.value<oldest)start.value=oldest;
-  if(end.value<oldest)end.value=oldest;
   if(start.value>today)start.value=today;
   if(end.value>today)end.value=today;
   if(start.value>end.value){ const tmp=start.value; start.value=end.value; end.value=tmp; }
-  const earliestForEnd=addMonthsText(end.value,-2);
+  const earliestForEnd=addMonthsInputText(end.value,-2);
   if(start.value<earliestForEnd)start.value=earliestForEnd;
-  const latestForStart=addMonthsText(start.value,2);
+  const latestForStart=addMonthsInputText(start.value,2);
   if(end.value>latestForStart)end.value=latestForStart>today?today:latestForStart;
   const hint=document.getElementById('record-range-hint');
-  if(hint)hint.textContent=start.value===end.value ? '目前查詢：'+start.value : '目前查詢：'+start.value+' ～ '+end.value;
+  if(hint){
+    const s=normalizeDateText(start.value), e=normalizeDateText(end.value);
+    hint.textContent=s===e ? '目前查詢：'+s : '目前查詢：'+s+' ～ '+e;
+  }
 }
 function getRecordQueryRange(){
   setupRecordDateFilter();
   const start=document.getElementById('record-start');
   const end=document.getElementById('record-end');
-  const today=getTodayText();
+  const today=getTodayInputText();
   return {start:normalizeDateText((start&&start.value)||today), end:normalizeDateText((end&&end.value)||today)};
 }
 function recordDateOf(o){
@@ -1254,7 +1269,7 @@ async function renderRecords(){
       return;
     }
     if(!queryOrders.length){
-      el.innerHTML='<div class="empty">'+esc(rangeText)+' 沒有上傳記錄<br><small>可改選最多 2 個月內的日期範圍</small></div>';
+      el.innerHTML='<div class="empty">'+esc(rangeText)+' 沒有上傳記錄<br><small>可改選單次最多 2 個月的日期範圍</small></div>';
       return;
     }
 
@@ -1327,7 +1342,7 @@ async function renderRecords(){
       return;
     }
     if(!queryOrders.length){
-      el.innerHTML='<div class="empty">'+esc(rangeText)+' 沒有本機記錄<br><small>雲端讀取失敗，可改選最多 2 個月內的日期範圍</small></div>';
+      el.innerHTML='<div class="empty">'+esc(rangeText)+' 沒有本機記錄<br><small>雲端讀取失敗，可改選單次最多 2 個月的日期範圍</small></div>';
       return;
     }
     el.innerHTML='<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:10px;padding:10px 12px;font-size:12px;color:#7a5f00;margin-bottom:10px">⚠️ 雲端讀取失敗，顯示本機記錄（唯讀）</div>'+
@@ -1710,5 +1725,7 @@ async function doReset(){
 </script>
 </body>
 </html>
+
+
 
 
