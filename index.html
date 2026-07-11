@@ -545,7 +545,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang TC','Microsoft Jheng
             <input type="date" id="record-end" onchange="updateRecordRangeHint()" oninput="updateRecordRangeHint()" style="width:100%;border:1px solid #d0d5dd;border-radius:9px;padding:10px 12px;font-size:15px;color:#101828;background:#fff">
           </div>
         </div>
-        <button type="button" onclick="applyRecordSearch()" style="width:100%;margin-top:8px;border:none;border-radius:9px;background:#1a5fa8;color:#fff;font-weight:700;padding:10px 12px;font-size:14px">查詢</button>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+          <button type="button" onclick="applyRecordSearch()" style="border:none;border-radius:9px;background:#1a5fa8;color:#fff;font-weight:700;padding:10px 12px;font-size:14px">查詢</button>
+          <button type="button" onclick="applyRecordToday()" style="border:1px solid #bcd0eb;border-radius:9px;background:#eef5ff;color:#1a5fa8;font-weight:700;padding:10px 12px;font-size:14px">回今日</button>
+        </div>
         <div id="record-range-hint" style="font-size:11px;color:#98a2b3;margin-top:6px">預設今天，可自行選擇日期區間，單次最多 2 個月。</div>
       </div>
       <div class="rec-list" id="rec-list"></div>
@@ -1177,6 +1180,7 @@ function showTab(t){
   document.querySelectorAll('.panel').forEach(el=>el.classList.remove('active'));
   document.getElementById('panel-'+t).classList.add('active');
   if(t==='records'){ setupRecordDateFilter(); renderRecords(); }
+  else resetRecordDateToToday(false);
 }
 
 function inputDateText(dateInput){
@@ -1193,6 +1197,19 @@ function getTodayInputText(){
   const m=String(d.getMonth()+1).padStart(2,'0');
   const day=String(d.getDate()).padStart(2,'0');
   return y+'-'+m+'-'+day;
+}
+function resetRecordDateToToday(shouldSearch){
+  const start=document.getElementById('record-start');
+  const end=document.getElementById('record-end');
+  if(!start||!end)return;
+  const today=getTodayInputText();
+  start.value=today;
+  end.value=today;
+  updateRecordRangeHint();
+  if(shouldSearch)renderRecords();
+}
+function applyRecordToday(){
+  resetRecordDateToToday(true);
 }
 function addMonthsInputText(dateText, months){
   const d=new Date(String(dateText||'').replace(/\//g,'-')+'T00:00:00');
@@ -1747,6 +1764,7 @@ async function doReset(){
 </script>
 </body>
 </html>
+
 
 
 
