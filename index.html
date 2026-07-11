@@ -538,14 +538,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'PingFang TC','Microsoft Jheng
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
           <div>
             <label for="record-start" style="display:block;font-size:11px;color:#98a2b3;margin-bottom:4px">起日</label>
-            <input type="date" id="record-start" onchange="renderRecords('start')" oninput="renderRecords('start')" style="width:100%;border:1px solid #d0d5dd;border-radius:9px;padding:10px 12px;font-size:15px;color:#101828;background:#fff">
+            <input type="date" id="record-start" onchange="updateRecordRangeHint()" oninput="updateRecordRangeHint()" style="width:100%;border:1px solid #d0d5dd;border-radius:9px;padding:10px 12px;font-size:15px;color:#101828;background:#fff">
           </div>
           <div>
             <label for="record-end" style="display:block;font-size:11px;color:#98a2b3;margin-bottom:4px">迄日</label>
-            <input type="date" id="record-end" onchange="renderRecords('end')" oninput="renderRecords('end')" style="width:100%;border:1px solid #d0d5dd;border-radius:9px;padding:10px 12px;font-size:15px;color:#101828;background:#fff">
+            <input type="date" id="record-end" onchange="updateRecordRangeHint()" oninput="updateRecordRangeHint()" style="width:100%;border:1px solid #d0d5dd;border-radius:9px;padding:10px 12px;font-size:15px;color:#101828;background:#fff">
           </div>
         </div>
-        <button type="button" onclick="renderRecords()" style="width:100%;margin-top:8px;border:none;border-radius:9px;background:#1a5fa8;color:#fff;font-weight:700;padding:10px 12px;font-size:14px">查詢</button>
+        <button type="button" onclick="applyRecordSearch()" style="width:100%;margin-top:8px;border:none;border-radius:9px;background:#1a5fa8;color:#fff;font-weight:700;padding:10px 12px;font-size:14px">查詢</button>
         <div id="record-range-hint" style="font-size:11px;color:#98a2b3;margin-top:6px">預設今天，可自行選擇日期區間，單次最多 2 個月。</div>
       </div>
       <div class="rec-list" id="rec-list"></div>
@@ -1199,7 +1199,7 @@ function addMonthsInputText(dateText, months){
   d.setMonth(d.getMonth()+months);
   return inputDateText(d);
 }
-function setupRecordDateFilter(changed){
+function setupRecordDateFilter(){
   const start=document.getElementById('record-start');
   const end=document.getElementById('record-end');
   if(!start||!end)return;
@@ -1209,31 +1209,39 @@ function setupRecordDateFilter(changed){
   if(!end.value)end.value=today;
   if(start.value>today)start.value=today;
   if(end.value>today)end.value=today;
-
-  if(start.value>end.value){
-    if(changed==='start') end.value=start.value;
-    else start.value=end.value;
-  }
-
-  const latestForStart=addMonthsInputText(start.value,2);
-  const earliestForEnd=addMonthsInputText(end.value,-2);
-  if(end.value>latestForStart){
-    if(changed==='start') end.value=latestForStart>today?today:latestForStart;
-    else start.value=earliestForEnd;
-  }
-
-  const hint=document.getElementById('record-range-hint');
-  if(hint){
-    const s=normalizeDateText(start.value), e=normalizeDateText(end.value);
-    hint.textContent=s===e ? '目前查詢：'+s : '目前查詢：'+s+' ～ '+e;
-  }
+  updateRecordRangeHint();
 }
-function getRecordQueryRange(changed){
-  setupRecordDateFilter(changed);
+function getRecordQueryRange(){
   const start=document.getElementById('record-start');
   const end=document.getElementById('record-end');
   const today=getTodayInputText();
   return {start:normalizeDateText((start&&start.value)||today), end:normalizeDateText((end&&end.value)||today)};
+}
+function recordRangeStatus(){
+  const start=document.getElementById('record-start');
+  const end=document.getElementById('record-end');
+  const today=getTodayInputText();
+  const s=(start&&start.value)||today;
+  const e=(end&&end.value)||today;
+  if(s>e)return {ok:false,msg:'起日不可晚於迄日'};
+  if(e>addMonthsInputText(s,2))return {ok:false,msg:'查詢範圍超過 2 個月，請縮小區間後再查詢'};
+  return {ok:true,msg:''};
+}
+function updateRecordRangeHint(){
+  const hint=document.getElementById('record-range-hint');
+  const start=document.getElementById('record-start');
+  const end=document.getElementById('record-end');
+  if(!hint||!start||!end)return true;
+  const s=normalizeDateText(start.value||getTodayInputText()), e=normalizeDateText(end.value||getTodayInputText());
+  const st=recordRangeStatus();
+  hint.style.color=st.ok?'#98a2b3':'#c0392b';
+  hint.textContent=st.ok ? (s===e ? '目前選擇：'+s : '目前選擇：'+s+' ～ '+e) : st.msg;
+  return st.ok;
+}
+function applyRecordSearch(){
+  setupRecordDateFilter();
+  if(!updateRecordRangeHint())return;
+  renderRecords();
 }
 function recordDateOf(o){
   const rawDate=(o&&o.date)||'';
@@ -1244,10 +1252,15 @@ function recordInRange(o, range){
   return d>=range.start && d<=range.end;
 }
 
-async function renderRecords(changed){
-  setupRecordDateFilter(changed);
+async function renderRecords(){
+  setupRecordDateFilter();
+  if(!updateRecordRangeHint()){
+    const el=document.getElementById('rec-list');
+    if(el)el.innerHTML='<div class="empty">請先把查詢範圍縮小到 2 個月內</div>';
+    return;
+  }
   const car=getLockedCar();
-  const queryRange=getRecordQueryRange(changed);
+  const queryRange=getRecordQueryRange();
   const today=normalizeDateText(getTodayText());
   const isToday=queryRange.start===today&&queryRange.end===today;
   const rangeText=queryRange.start===queryRange.end ? queryRange.start : queryRange.start+' ～ '+queryRange.end;
@@ -1734,6 +1747,7 @@ async function doReset(){
 </script>
 </body>
 </html>
+
 
 
 
