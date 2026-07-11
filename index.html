@@ -1268,6 +1268,23 @@ function recordInRange(o, range){
   const d=recordDateOf(o);
   return d>=range.start && d<=range.end;
 }
+function recordIsArchived(o){
+  const d=recordDateOf(o);
+  if(!d)return false;
+  const cutoff=normalizeDateText(addMonthsInputText(getTodayInputText(),-2));
+  return d<cutoff;
+}
+function getCurrentOrderById(id){
+  return currentOrders.find(function(o){ return String(o.id)===String(id); });
+}
+function showArchivedToast(){
+  showToast('error','🔒 歷史案件已封檔','超過 2 個月的工單只能查詢，不能補照片、編輯或刪除。');
+}
+function isArchivedRecordId(id){
+  const o=getCurrentOrderById(id);
+  if(o&&recordIsArchived(o)){ showArchivedToast(); return true; }
+  return false;
+}
 
 async function renderRecords(){
   setupRecordDateFilter();
@@ -1341,9 +1358,18 @@ async function renderRecords(){
         : rawCreated;
       const safeOrderType=esc(o.orderType||'安裝');
       const safeId=esc(o.id||'');
+      const archived=!!o.archived||recordIsArchived(o);
+      const actionHtml=archived
+        ? '<div class="rec-actions" style="opacity:0.65"><button class="rec-btn" style="background:#f2f4f7;color:#667085;cursor:not-allowed" disabled>🔒 已封檔，只能查詢</button></div>'
+        : '<div class="rec-actions"><button class="rec-btn rec-btn-photo" onclick="openPhotoModal(\''+safeId+'\')">📷 補照片</button>'+
+          (o.editedOnce
+            ? '<button class="rec-btn" style="background:#f2f4f7;color:#98a2b3;cursor:not-allowed" disabled>🔒 已鎖定</button>'
+            : '<button class="rec-btn rec-btn-edit" onclick="openEditModal(\''+safeId+'\')">✏️ 編輯</button>')+
+          '<button class="rec-btn rec-btn-del" onclick="openDelModal(\''+safeId+'\',\''+safeName2+'\')">🗑️ 刪除</button></div>';
       return '<div class="rec-card" id="rec-'+safeId+'">'+
         '<div class="rec-header"><span class="badge b-'+esc(o.car||'')+'">'+esc(o.car||'')+'</span>'+
         '<span style="font-size:11px;color:#667085;margin-left:6px">'+safeOrderType+'</span>'+
+        (archived?'<span style="font-size:10px;background:#f2f4f7;color:#667085;border:1px solid #d0d5dd;border-radius:10px;padding:2px 7px;margin-left:4px">🔒封檔</span>':'')+
         (o.editedOnce?'<span style="font-size:10px;background:#fff3cd;color:#856404;border:1px solid #ffc107;border-radius:10px;padding:2px 7px;margin-left:4px">🔒已改</span>':'')+
         '<span class="rec-fee">$'+(Number(o.totalFee)||0).toLocaleString()+'</span></div>'+
         '<div class="rec-addr">'+(safeName2?safeName2+' ｜ ':'')+safeAddr+'</div>'+
@@ -1356,13 +1382,7 @@ async function renderRecords(){
         (o.photo?'<span>📷 '+esc(o.photo)+'</span>':'')+
         (o.createdAt?'<span style="color:#aaa;font-size:11px">🕐 '+esc(displayCreated)+'</span>':'')+
         '</div>'+
-        '<div class="rec-actions">'+
-        '<button class="rec-btn rec-btn-photo" onclick="openPhotoModal(\''+safeId+'\')">📷 補照片</button>'+
-        (o.editedOnce
-          ? '<button class="rec-btn" style="background:#f2f4f7;color:#98a2b3;cursor:not-allowed" disabled>🔒 已鎖定</button>'
-          : '<button class="rec-btn rec-btn-edit" onclick="openEditModal(\''+safeId+'\')">✏️ 編輯</button>')+
-        '<button class="rec-btn rec-btn-del" onclick="openDelModal(\''+safeId+'\',\''+safeName2+'\')">🗑️ 刪除</button>'+
-        '</div>'+
+        actionHtml+
         '</div>';
     }).join('');
 
@@ -1397,6 +1417,7 @@ async function renderRecords(){
       return '<div class="rec-card">'+
         '<div class="rec-header"><span class="badge b-'+esc(o.car||'')+'">'+esc(o.car||'')+'</span>'+
         '<span style="font-size:11px;color:#667085;margin-left:6px">'+esc(o.orderType||'安裝')+'</span>'+
+        (archived?'<span style="font-size:10px;background:#f2f4f7;color:#667085;border:1px solid #d0d5dd;border-radius:10px;padding:2px 7px;margin-left:4px">🔒封檔</span>':'')+
         (o.editedOnce?'<span style="font-size:10px;background:#fff3cd;color:#856404;border:1px solid #ffc107;border-radius:10px;padding:2px 7px;margin-left:4px">🔒已改</span>':'')+
         '<span class="rec-fee">$'+(Number(o.totalFee)||0).toLocaleString()+'</span></div>'+
         '<div class="rec-addr">'+(safeName2?safeName2+' ｜ ':'')+safeAddr+'</div>'+
@@ -1421,6 +1442,7 @@ async function renderRecords(){
 // ── 刪除記錄 ──
 let pendingDeleteId = '';
 function openDelModal(id, name){
+  if(isArchivedRecordId(id))return;
   pendingDeleteId = id;
   document.getElementById('del-modal-msg').textContent = '確定要刪除「'+(name||'此筆')+'」的工單嗎？此操作無法復原。';
   document.getElementById('del-modal').classList.add('show');
@@ -1468,6 +1490,7 @@ async function confirmDelete(){
 // ── 補照片 ──
 let pendingPhotoId='', addPhotoData=[];
 function openPhotoModal(id){
+  if(isArchivedRecordId(id))return;
   pendingPhotoId=id;
   addPhotoData=[];
   document.getElementById('add-photos-input').value='';
@@ -1556,6 +1579,7 @@ let editMachines=[], editIsReturn=false;
 function openEditModal(id){
   const o=currentOrders.find(function(o){ return String(o.id)===String(id); });
   if(!o){ showToast('error','❌ 找不到此工單','請重新整理後再試');return; }
+  if(recordIsArchived(o)){ showArchivedToast(); return; }
   // 編輯鎖：已改過直接擋，不進 modal
   if(o.editedOnce){
     showToast('error','🔒 此工單已鎖定','每筆工單只能修改一次，如需協助請聯絡老闆。');
